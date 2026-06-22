@@ -1,0 +1,12 @@
+{
+  "name": "texas-holdem",
+  "version": "1.0.0",
+  "description": "德州扑克联机版",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "8.18.0"
+  }
+}

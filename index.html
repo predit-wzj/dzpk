@@ -1,0 +1,2351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>德州扑克 - 联机版</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #0a0a0f; color: #e0c97f; font-family: "Microsoft YaHei", sans-serif; min-height: 100vh; overflow: hidden; }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #1a1a2e; }
+::-webkit-scrollbar-thumb { background: #c9a84c; border-radius: 3px; }
+.hidden { display: none !important; }
+
+/* ===== LOBBY ===== */
+#lobby { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: radial-gradient(ellipse at center, #1a2a1a 0%, #0a0a0f 70%); }
+.lobby-title { font-size: 3rem; font-weight: bold; color: #f0d060; text-shadow: 0 0 30px #c9a84c, 0 0 60px #c9a84c44; margin-bottom: .5rem; letter-spacing: 4px; }
+.lobby-subtitle { font-size: 1rem; color: #888; margin-bottom: 2.5rem; letter-spacing: 2px; }
+.lobby-card { background: linear-gradient(135deg, #1a1a2e, #16213e); border: 1px solid #c9a84c44; border-radius: 16px; padding: 2rem; width: 420px; box-shadow: 0 8px 32px #00000088; }
+.lobby-card h2 { text-align: center; margin-bottom: 1.5rem; color: #f0d060; font-size: 1.2rem; }
+.form-group { margin-bottom: 1rem; }
+.form-group label { display: block; margin-bottom: .35rem; color: #c9a84c; font-size: .88rem; }
+.form-group input { width: 100%; padding: .6rem 1rem; background: #0d1117; border: 1px solid #c9a84c44; border-radius: 8px; color: #e0c97f; font-size: 1rem; outline: none; transition: border-color .2s; }
+.form-group input:focus { border-color: #c9a84c; }
+.btn { width: 100%; padding: .7rem; border: none; border-radius: 8px; font-size: .95rem; font-weight: bold; cursor: pointer; transition: all .2s; margin-top: .4rem; letter-spacing: 1px; }
+.btn-gold { background: linear-gradient(135deg, #c9a84c, #f0d060); color: #1a1a00; }
+.btn-gold:hover { background: linear-gradient(135deg, #f0d060, #c9a84c); box-shadow: 0 4px 16px #c9a84c66; transform: translateY(-1px); }
+.btn-gold:active { transform: translateY(0); }
+.btn-outline { background: transparent; border: 1px solid #c9a84c; color: #c9a84c; }
+.btn-outline:hover { background: #c9a84c22; }
+.btn-sm { width: auto; padding: .35rem .8rem; font-size: .82rem; margin-top: 0; }
+.divider { text-align: center; color: #555; margin: .8rem 0; position: relative; font-size: .85rem; }
+.divider::before, .divider::after { content: ''; position: absolute; top: 50%; width: 38%; height: 1px; background: #333; }
+.divider::before { left: 0; } .divider::after { right: 0; }
+.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+/* ===== WAITING ROOM ===== */
+#waiting { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: radial-gradient(ellipse at center, #1a2a1a 0%, #0a0a0f 70%); }
+.waiting-card { background: linear-gradient(135deg, #1a1a2e, #16213e); border: 1px solid #c9a84c44; border-radius: 16px; padding: 2rem; width: 480px; box-shadow: 0 8px 32px #00000088; }
+.room-id-display { text-align: center; margin-bottom: 1.5rem; padding: 1rem; background: #0d1117; border-radius: 12px; border: 1px solid #c9a84c22; }
+.room-id-display .label { font-size: .85rem; color: #888; margin-bottom: .3rem; }
+.room-id-display .rid { font-size: 2.8rem; font-weight: bold; color: #f0d060; letter-spacing: 10px; text-shadow: 0 0 20px #c9a84c66; }
+.player-list { margin-bottom: 1.2rem; }
+.player-list h3 { color: #c9a84c; margin-bottom: .7rem; font-size: .9rem; text-transform: uppercase; letter-spacing: 1px; }
+.player-item { display: flex; justify-content: space-between; align-items: center; padding: .5rem .8rem; background: #0d1117; border-radius: 8px; margin-bottom: .35rem; border: 1px solid #ffffff11; }
+.player-item .pname { color: #e0c97f; font-size: .95rem; }
+.player-item .pchips { color: #c9a84c; font-size: .82rem; }
+.player-item .host-badge { background: #c9a84c; color: #000; font-size: .68rem; padding: .1rem .35rem; border-radius: 4px; margin-left: .4rem; font-weight: bold; }
+.waiting-status { text-align: center; color: #888; font-size: .88rem; padding: .7rem; background: #0d1117; border-radius: 8px; margin-bottom: 1rem; border: 1px solid #ffffff11; }
+
+/* ===== GAME LAYOUT ===== */
+#game { display: grid; grid-template-columns: 1fr 280px; height: 100vh; overflow: hidden; }
+.table-area { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, #0d1f0d 0%, #050f05 100%); overflow: hidden; }
+.poker-table { position: relative; width: 900px; height: 540px; }
+.table-felt { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 40%, #1e6b1e 0%, #0f4a0f 55%, #0a320a 100%); border-radius: 50%; border: 16px solid #5c3a1e; box-shadow: 0 0 0 6px #8b5e2e, 0 0 0 8px #5c3a1e, 0 0 100px #00000099, inset 0 0 80px #00000055; }
+.table-inner-line { position: absolute; inset: 26px; border-radius: 50%; border: 2px solid #ffffff0d; }
+.community-area { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 10; }
+.community-cards { display: flex; gap: 8px; min-height: 96px; align-items: center; }
+.pot-info { text-align: center; }
+.pot-label { font-size: .82rem; color: #c9a84c88; text-transform: uppercase; letter-spacing: 1px; }
+.pot-amount { font-size: 1.35rem; font-weight: bold; color: #f0d060; text-shadow: 0 0 12px #c9a84c; }
+.round-badge { background: #c9a84c22; border: 1px solid #c9a84c55; border-radius: 10px; padding: .2rem .8rem; font-size: .8rem; color: #c9a84c; margin-top: 3px; }
+
+/* ===== CARDS ===== */
+.card { width: 64px; height: 92px; background: #fff; border-radius: 7px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 4px 12px #00000088; position: relative; flex-shrink: 0; border: 1px solid #ccc; transition: transform .15s; }
+.card.red { color: #dd0000; }
+.card.black { color: #111; }
+.card.back { background: repeating-linear-gradient(45deg, #5a0000, #5a0000 5px, #7a0000 5px, #7a0000 10px); border: 2px solid #c9a84c; cursor: default; }
+.card.back:hover { transform: none; }
+.card.back::after { content: ''; position: absolute; inset: 5px; border: 1px solid #c9a84c44; border-radius: 4px; }
+.card-rank { font-size: 1.3rem; line-height: 1.1; font-weight: 900; }
+.card-suit { font-size: 1.1rem; line-height: 1; }
+.card-sm { width: 48px; height: 68px; }
+.card-sm .card-rank { font-size: 1rem; font-weight: 900; }
+.card-sm .card-suit { font-size: .9rem; }
+
+/* ===== SEATS ===== */
+.seat { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 5px; z-index: 20; transform: translate(-50%, -50%); }
+.seat-box { background: linear-gradient(135deg, #1a1a2e, #16213e); border: 2px solid #333; border-radius: 14px; padding: .5rem .75rem; min-width: 105px; text-align: center; transition: all .3s; }
+.seat-box.active { border-color: #f0d060; box-shadow: 0 0 24px #f0d06088, 0 0 48px #f0d06044; }
+.seat-box.folded { opacity: .4; filter: grayscale(0.8); }
+.seat-box.allin { border-color: #ff6600; box-shadow: 0 0 18px #ff660066; }
+.seat-box.self { border-color: #4488ff44; }
+.seat-name { font-size: .85rem; color: #e0c97f; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 95px; display: flex; align-items: center; justify-content: center; gap: 4px; }
+.seat-collapse-btn { cursor: pointer; font-size: .7rem; color: #888; user-select: none; transition: color .2s; }
+.seat-collapse-btn:hover { color: #f0d060; }
+.seat-collapsible { transition: all .3s ease; overflow: hidden; }
+.seat-box.collapsed .seat-collapsible { max-height: 0; opacity: 0; margin: 0; padding: 0; }
+
+/* ===== ALL-IN 特效 ===== */
+#allinEffect { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999; }
+.lightning-flash { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(ellipse at center, rgba(255,255,255,0.9) 0%, rgba(135,206,250,0.6) 30%, transparent 70%); opacity: 0; animation: lightningFlash 0.8s ease-out; }
+@keyframes lightningFlash {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  20% { opacity: 0.3; }
+  30% { opacity: 1; }
+  50% { opacity: 0.5; }
+  60% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.blade-slash { position: absolute; top: 50%; left: -10%; width: 120%; height: 3px; background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.9) 20%, rgba(200,200,255,1) 50%, rgba(255,255,255,0.9) 80%, transparent 100%); box-shadow: 0 0 20px rgba(255,255,255,0.8), 0 0 40px rgba(135,206,250,0.6); transform: translateY(-50%) rotate(-15deg); opacity: 0; animation: bladeSlash 0.6s ease-out 0.3s; }
+@keyframes bladeSlash {
+  0% { opacity: 0; left: -10%; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; left: 110%; }
+}
+.blade-trail { position: absolute; top: 50%; left: -10%; width: 120%; height: 80px; background: linear-gradient(90deg, transparent 0%, rgba(135,206,250,0.3) 30%, rgba(200,200,255,0.5) 50%, rgba(135,206,250,0.3) 70%, transparent 100%); transform: translateY(-50%) rotate(-15deg); opacity: 0; filter: blur(10px); animation: bladeTrail 0.6s ease-out 0.3s; }
+@keyframes bladeTrail {
+  0% { opacity: 0; left: -10%; }
+  30% { opacity: 0.6; }
+  70% { opacity: 0.6; }
+  100% { opacity: 0; left: 110%; }
+}
+.allin-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 5rem; font-weight: bold; color: #fff; text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000, 0 0 60px #ff0000, 0 0 80px #ff0000; opacity: 0; animation: allinText 1s ease-out 0.5s; letter-spacing: 10px; }
+@keyframes allinText {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+  20% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+  80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+}
+.seat-chips { font-size: .78rem; color: #c9a84c; }
+.seat-bet { font-size: .74rem; color: #88cc88; min-height: 16px; }
+.seat-cards { display: flex; gap: 4px; justify-content: center; margin-top: 3px; }
+.dealer-btn { position: absolute; top: -12px; right: -12px; width: 26px; height: 26px; background: linear-gradient(135deg, #f0d060, #c9a84c); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .72rem; font-weight: bold; color: #1a1a00; box-shadow: 0 2px 8px #00000066; z-index: 30; }
+.status-badge { font-size: .68rem; padding: .12rem .35rem; border-radius: 4px; margin-top: 2px; }
+.status-badge.folded-badge { background: #4a1a1a; color: #cc6666; }
+.status-badge.allin-badge { background: #4a2a00; color: #ff9944; }
+.status-badge.disconnected-badge { background: #2a2a2a; color: #888; }
+.status-badge.waiting-badge { background: #1a3a4a; color: #66ccff; }
+
+/* ===== ACTION BAR ===== */
+.action-bar { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 16px; background: linear-gradient(180deg, transparent, #0a0a0f88); width: 100%; max-width: 700px; }
+.action-info { font-size: .85rem; color: #f0d060; text-align: center; }
+.action-buttons { display: flex; gap: 10px; }
+.btn-action { padding: .55rem 1.4rem; border: none; border-radius: 8px; font-size: .9rem; font-weight: bold; cursor: pointer; transition: all .2s; letter-spacing: .5px; }
+.btn-fold { background: linear-gradient(135deg, #6b1a1a, #aa2222); color: #fff; }
+.btn-fold:hover { background: linear-gradient(135deg, #aa2222, #6b1a1a); box-shadow: 0 4px 12px #aa222266; }
+.btn-check { background: linear-gradient(135deg, #1a4a1a, #2a7a2a); color: #fff; }
+.btn-check:hover { background: linear-gradient(135deg, #2a7a2a, #1a4a1a); box-shadow: 0 4px 12px #2a7a2a66; }
+.btn-call { background: linear-gradient(135deg, #1a4a1a, #2a7a2a); color: #fff; border: 2px solid #4aaa4a; }
+.btn-call:hover { background: linear-gradient(135deg, #2a7a2a, #1a4a1a); box-shadow: 0 4px 12px #2a7a2a66; }
+.btn-raise { background: linear-gradient(135deg, #c9a84c, #f0d060); color: #1a1a00; }
+.btn-raise:hover { background: linear-gradient(135deg, #f0d060, #c9a84c); box-shadow: 0 4px 12px #c9a84c66; }
+.btn-allin { background: linear-gradient(135deg, #8b1a1a, #cc3333); color: #fff; border: 2px solid #ff6666; }
+.btn-allin:hover { background: linear-gradient(135deg, #cc3333, #8b1a1a); box-shadow: 0 4px 16px #cc333366; }
+.raise-panel { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 500px; background: #0d1117cc; border-radius: 10px; padding: 10px; border: 1px solid #c9a84c33; }
+.raise-presets { display: flex; gap: 6px; justify-content: center; }
+.btn-preset { padding: .3rem .7rem; background: #1a1a2e; border: 1px solid #c9a84c44; border-radius: 6px; color: #c9a84c; font-size: .8rem; cursor: pointer; transition: all .2s; }
+.btn-preset:hover { background: #c9a84c22; border-color: #c9a84c; }
+.raise-input-row { display: flex; gap: 8px; align-items: center; }
+#raiseSlider { flex: 1; accent-color: #c9a84c; }
+#raiseInput { width: 80px; padding: .3rem .5rem; background: #0d1117; border: 1px solid #c9a84c44; border-radius: 6px; color: #e0c97f; font-size: .9rem; text-align: center; outline: none; }
+
+/* ===== SIDEBAR ===== */
+.sidebar { display: flex; flex-direction: column; background: #0d1117; border-left: 1px solid #c9a84c22; overflow: hidden; }
+.sidebar-header { padding: .7rem 1rem; background: #1a1a2e; border-bottom: 1px solid #c9a84c22; display: flex; justify-content: space-between; align-items: center; font-size: .85rem; color: #c9a84c; }
+.log-area { flex: 1; overflow-y: auto; padding: .5rem; font-size: .78rem; line-height: 1.5; }
+.log-entry { padding: .2rem .4rem; border-radius: 4px; margin-bottom: 2px; }
+.log-entry.info { color: #aaa; }
+.log-entry.action { color: #88cc88; }
+.log-entry.win { color: #f0d060; font-weight: bold; }
+.log-entry.fold { color: #cc6666; }
+.log-entry.system { color: #6688cc; }
+.chat-area { border-top: 1px solid #c9a84c22; display: flex; flex-direction: column; max-height: 200px; }
+.chat-messages { flex: 1; overflow-y: auto; padding: .4rem .5rem; font-size: .78rem; max-height: 140px; }
+.chat-msg { margin-bottom: 3px; }
+.chat-msg .chat-name { color: #c9a84c; font-weight: bold; }
+.chat-msg .chat-text { color: #ccc; }
+.chat-input-row { display: flex; gap: 4px; padding: .4rem .5rem; border-top: 1px solid #ffffff11; }
+.btn-interact { padding: .35rem .5rem; background: #2a2a3e; border: 1px solid #c9a84c33; border-radius: 6px; font-size: 1.2rem; cursor: pointer; transition: all .2s; }
+.btn-interact:hover { background: #3a3a4e; border-color: #c9a84c; transform: scale(1.1); }
+.btn-interact.active { background: #c9a84c; border-color: #f0d060; box-shadow: 0 0 10px #c9a84c88; }
+#chatInput { flex: 1; padding: .35rem .6rem; background: #1a1a2e; border: 1px solid #c9a84c33; border-radius: 6px; color: #e0c97f; font-size: .8rem; outline: none; }
+#chatInput:focus { border-color: #c9a84c; }
+.btn-chat-send { padding: .35rem .7rem; background: #c9a84c; border: none; border-radius: 6px; color: #000; font-size: .78rem; font-weight: bold; cursor: pointer; }
+.btn-chat-send:hover { background: #f0d060; }
+
+/* ===== 互动特效 ===== */
+.seat-box.interact-target { cursor: pointer; box-shadow: 0 0 15px #f0d060; animation: pulse 0.8s infinite; }
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 15px #f0d060; }
+  50% { box-shadow: 0 0 25px #f0d060, 0 0 35px #f0d06088; }
+}
+.flower-fly { position: fixed; font-size: 2.5rem; pointer-events: none; z-index: 9998; filter: drop-shadow(0 0 5px rgba(255,182,193,0.8)); }
+.egg-fly { position: fixed; font-size: 2rem; pointer-events: none; z-index: 9998; }
+.egg-splash { position: fixed; font-size: 3rem; pointer-events: none; z-index: 9998; animation: eggSplash 0.6s ease-out forwards; }
+@keyframes eggSplash {
+  0% { transform: scale(0.5) rotate(0deg); opacity: 1; }
+  50% { transform: scale(1.2) rotate(180deg); opacity: 1; }
+  100% { transform: scale(1.5) rotate(360deg); opacity: 0; }
+}
+.flower-burst { position: fixed; pointer-events: none; z-index: 9998; }
+.flower-particle { position: absolute; font-size: 1.5rem; animation: flowerParticle 1s ease-out forwards; }
+@keyframes flowerParticle {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(0.3); opacity: 0; }
+}
+
+/* ===== MODAL ===== */
+.modal-overlay { position: fixed; inset: 0; background: #00000099; display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.modal { background: linear-gradient(135deg, #1a1a2e, #16213e); border: 1px solid #c9a84c44; border-radius: 16px; padding: 2rem; min-width: 360px; max-width: 500px; box-shadow: 0 16px 64px #00000099; }
+.modal-title { text-align: center; font-size: 1.4rem; color: #f0d060; margin-bottom: 1.2rem; font-weight: bold; }
+.winner-item { display: flex; justify-content: space-between; align-items: center; padding: .6rem .8rem; background: #0d1117; border-radius: 8px; margin-bottom: .5rem; border: 1px solid #c9a84c22; }
+.winner-name { color: #e0c97f; font-weight: bold; }
+.winner-hand { color: #c9a84c; font-size: .85rem; }
+.winner-gain { color: #88cc88; font-weight: bold; }
+
+/* ===== RESULT MODAL ===== */
+.review-section { margin-top: 1rem; border-top: 1px solid #c9a84c22; padding-top: .8rem; }
+.review-title { font-size: .8rem; color: #c9a84c; text-transform: uppercase; letter-spacing: 1px; margin-bottom: .5rem; }
+.review-community { display: flex; gap: 5px; justify-content: center; margin-bottom: .8rem; flex-wrap: wrap; }
+.review-player { margin-bottom: .6rem; }
+.review-player-name { font-size: .82rem; color: #e0c97f; margin-bottom: .3rem; }
+.review-cards { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.waiting-next-bar { margin-top: .8rem; padding: .5rem .8rem; background: #1a1a0a; border: 1px solid #c9a84c44; border-radius: 8px; font-size: .82rem; color: #c9a84c; text-align: center; min-height: 32px; }
+
+/* ===== TOAST ===== */
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1a1a2e; border: 1px solid #c9a84c44; border-radius: 8px; padding: .6rem 1.2rem; color: #e0c97f; font-size: .9rem; z-index: 2000; box-shadow: 0 4px 16px #00000088; transition: opacity .3s; }
+.toast.error { border-color: #cc2222; color: #ff8888; }
+.conn-status { position: absolute; top: 10px; left: 10px; font-size: .72rem; padding: .2rem .6rem; border-radius: 10px; z-index: 100; }
+.conn-status.connected { background: #1a4a1a; color: #66cc66; border: 1px solid #2a7a2a; }
+.conn-status.disconnected { background: #4a1a1a; color: #cc6666; border: 1px solid #7a2a2a; }
+.conn-status.connecting { background: #4a3a1a; color: #ccaa44; border: 1px solid #7a5a2a; }
+
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .6; } }
+.pulse { animation: pulse 1.5s infinite; }
+@keyframes dealCard { from { transform: scale(0) rotate(-180deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
+.card-deal { animation: dealCard .3s ease; }
+@keyframes glow { 0%, 100% { box-shadow: 0 0 20px #f0d06088; } 50% { box-shadow: 0 0 40px #f0d060cc, 0 0 60px #f0d06044; } }
+.seat-box.active { animation: glow 1.5s infinite; }
+
+/* ===== 游戏结算按钮 ===== */
+.btn-reset { background: linear-gradient(135deg, #6b1a6b, #aa22aa); color: #fff; border: none; border-radius: 8px; padding: .4rem .9rem; font-size: .82rem; font-weight: bold; cursor: pointer; transition: all .2s; }
+.btn-reset:hover { background: linear-gradient(135deg, #aa22aa, #6b1a6b); box-shadow: 0 4px 12px #aa22aa66; }
+
+/* ===== 重连提示 ===== */
+.reconnect-overlay { position: fixed; inset: 0; background: #000000cc; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; gap: 1rem; }
+.reconnect-overlay .rc-text { color: #f0d060; font-size: 1.1rem; }
+.reconnect-overlay .rc-sub { color: #888; font-size: .85rem; }
+
+/* ===== 借钱系统 ===== */
+.loan-area { border-top: 1px solid #c9a84c22; padding: .4rem .5rem; }
+.loan-area-title { font-size: .72rem; color: #c9a84c88; text-transform: uppercase; letter-spacing: 1px; margin-bottom: .3rem; }
+.loan-item { display: flex; justify-content: space-between; align-items: center; padding: .25rem .4rem; background: #0d1117; border-radius: 6px; margin-bottom: 3px; border: 1px solid #c9a84c22; font-size: .72rem; }
+.loan-item .loan-info { color: #ccc; }
+.loan-item .loan-owed { color: #ff9944; font-weight: bold; }
+.loan-item .loan-btn { padding: .15rem .4rem; border: none; border-radius: 4px; font-size: .68rem; cursor: pointer; font-weight: bold; margin-left: 3px; }
+.loan-btn.repay { background: #2a6a2a; color: #88ee88; }
+.loan-btn.repay:hover { background: #3a8a3a; }
+.loan-btn.dun { background: #6a2a2a; color: #ee8888; }
+.loan-btn.dun:hover { background: #8a3a3a; }
+.loan-btn.borrow { background: #2a3a6a; color: #88aaee; }
+.loan-btn.borrow:hover { background: #3a4a8a; }
+/* 借钱弹窗 */
+.loan-modal { min-width: 300px; max-width: 380px; }
+.loan-modal-subtitle { text-align:center; color:#aaa; font-size:.82rem; margin-bottom:1rem; }
+.loan-input-row { display: flex; align-items: center; gap: 8px; margin-bottom: .8rem; }
+.loan-input-row label { color: #c9a84c; font-size: .85rem; min-width: 60px; }
+.loan-input-row input { flex: 1; padding: .4rem .7rem; background: #0d1117; border: 1px solid #c9a84c44; border-radius: 6px; color: #e0c97f; font-size: .95rem; text-align: center; outline: none; }
+.loan-input-row input:focus { border-color: #c9a84c; }
+.loan-hint { font-size: .75rem; color: #888; text-align: center; margin-bottom: .8rem; }
+.loan-owed-preview { text-align: center; color: #ff9944; font-size: .9rem; font-weight: bold; margin-bottom: .8rem; min-height: 20px; }
+.loan-action-row { display: flex; gap: 8px; }
+.loan-action-row button { flex: 1; padding: .55rem; border: none; border-radius: 8px; font-size: .88rem; font-weight: bold; cursor: pointer; }
+.btn-loan-confirm { background: linear-gradient(135deg, #2a6a2a, #3a9a3a); color: #fff; }
+.btn-loan-confirm:hover { background: linear-gradient(135deg, #3a9a3a, #2a6a2a); }
+.btn-loan-cancel { background: #2a2a2a; color: #aaa; border: 1px solid #444 !important; }
+.btn-loan-cancel:hover { background: #3a3a3a; }
+.btn-loan-deny { background: linear-gradient(135deg, #6a2a2a, #9a3a3a); color: #fff; }
+.btn-loan-deny:hover { background: linear-gradient(135deg, #9a3a3a, #6a2a2a); }
+/* 催收警告 */
+.dun-overlay { position: fixed; inset: 0; background: #00000099; display: flex; align-items: center; justify-content: center; z-index: 1500; }
+.dun-modal { background: linear-gradient(135deg, #2a1a1a, #3a1a1a); border: 2px solid #cc4444; border-radius: 14px; padding: 1.5rem; min-width: 280px; text-align: center; box-shadow: 0 8px 32px #cc000088; }
+.dun-title { font-size: 1.3rem; color: #ff6666; font-weight: bold; margin-bottom: .6rem; }
+.dun-body { color: #ffaaaa; font-size: .9rem; margin-bottom: 1rem; line-height: 1.6; }
+.dun-btn { padding: .5rem 1.5rem; background: linear-gradient(135deg, #8a2222, #cc3333); color: #fff; border: none; border-radius: 8px; font-size: .9rem; font-weight: bold; cursor: pointer; }
+.dun-btn:hover { background: linear-gradient(135deg, #cc3333, #8a2222); }
+
+/* 结算弹窗 */
+.settlement-overlay { position: fixed; inset: 0; background: #00000099; display: flex; align-items: center; justify-content: center; z-index: 1500; }
+.settlement-modal { background: linear-gradient(135deg, #1a1a2e, #16213e); border: 2px solid #c9a84c; border-radius: 14px; padding: 1.5rem; min-width: 400px; max-width: 500px; box-shadow: 0 8px 32px #c9a84c88; }
+.settlement-title { font-size: 1.5rem; color: #f0d060; font-weight: bold; margin-bottom: 1rem; text-align: center; text-shadow: 0 0 20px #c9a84c66; }
+.settlement-table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+.settlement-table th { background: #c9a84c22; color: #c9a84c; padding: .5rem; font-size: .85rem; border-bottom: 2px solid #c9a84c44; }
+.settlement-table td { padding: .5rem; font-size: .85rem; color: #e0c97f; border-bottom: 1px solid #ffffff11; text-align: center; }
+.settlement-table tr:nth-child(1) td { color: #ffd700; font-weight: bold; }
+.settlement-table tr:nth-child(2) td { color: #c0c0c0; }
+.settlement-table tr:nth-child(3) td { color: #cd7f32; }
+.settlement-btn { width: 100%; padding: .6rem; background: linear-gradient(135deg, #c9a84c, #f0d060); color: #1a1a00; border: none; border-radius: 8px; font-size: .9rem; font-weight: bold; cursor: pointer; }
+.settlement-btn:hover { background: linear-gradient(135deg, #f0d060, #c9a84c); }
+
+/* ===== 响应式布局 ===== */
+@media (max-width: 1200px) {
+  .poker-table { width: 750px; height: 450px; }
+  .card { width: 56px; height: 80px; }
+  .card-rank { font-size: 1.15rem; }
+  .card-suit { font-size: 1rem; }
+  .card-sm { width: 42px; height: 60px; }
+  .card-sm .card-rank { font-size: .9rem; }
+  .card-sm .card-suit { font-size: .8rem; }
+}
+
+@media (max-width: 1024px) {
+  #game { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+  .sidebar { border-left: none; border-top: 1px solid #c9a84c22; max-height: 35vh; }
+  .poker-table { width: 650px; height: 390px; }
+  .card { width: 52px; height: 75px; }
+  .card-rank { font-size: 1.1rem; }
+  .card-suit { font-size: .95rem; }
+}
+
+@media (max-width: 768px) {
+  .poker-table { width: 520px; height: 312px; }
+  .table-felt { border-width: 12px; }
+  .card { width: 46px; height: 66px; }
+  .card-rank { font-size: 1rem; }
+  .card-suit { font-size: .85rem; }
+  .card-sm { width: 36px; height: 52px; }
+  .card-sm .card-rank { font-size: .8rem; }
+  .card-sm .card-suit { font-size: .7rem; }
+  .seat-box { min-width: 85px; padding: .35rem .55rem; }
+  .seat-name { font-size: .75rem; max-width: 75px; }
+  .community-cards { gap: 5px; }
+  .pot-amount { font-size: 1.1rem; }
+  .action-bar { max-width: 520px; }
+}
+
+/* ===== 手机适配 ===== */
+@media (max-width: 700px) {
+  body { overflow: auto; }
+  #game {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+    height: 100vh;
+    height: 100dvh; /* 动态视口高度，iOS Safari 支持 */
+  }
+  .table-area {
+    min-height: 65vh;
+    padding: 10px 5px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .poker-table {
+    width: 96vw;
+    height: 60vw;
+    max-width: 500px;
+    max-height: 312px;
+  }
+
+  /* 公牌区域优化 */
+  .community-area {
+    top: 45%; /* 稍微上移，避免被底部遮挡 */
+    gap: 6px;
+  }
+  .community-cards {
+    gap: 4px;
+    min-height: 56px;
+  }
+  .pot-info { margin-top: 4px; }
+  .pot-label { font-size: .7rem; }
+  .pot-amount { font-size: .95rem; }
+  .round-badge { font-size: .65rem; padding: .15rem .5rem; }
+
+  /* 座位优化 */
+  .seat-box {
+    min-width: 70px;
+    padding: .3rem .4rem;
+    font-size: .65rem;
+  }
+  .seat-name { font-size: .65rem; max-width: 65px; }
+  .seat-chips { font-size: .6rem; }
+  .seat-bet { font-size: .58rem; }
+
+  /* 卡牌大小 */
+  .card { width: 38px; height: 54px; }
+  .card-rank { font-size: .8rem; }
+  .card-suit { font-size: .7rem; }
+  .card-sm { width: 30px; height: 43px; }
+  .card-sm .card-rank { font-size: .65rem; }
+  .card-sm .card-suit { font-size: .58rem; }
+
+  /* 侧边栏优化 */
+  .sidebar {
+    max-height: 30vh;
+    border-left: none;
+    border-top: 1px solid #c9a84c22;
+  }
+  .log-area { max-height: 15vh; }
+  .chat-area { max-height: 15vh; }
+
+  /* 操作栏优化 */
+  .action-bar {
+    padding: 8px;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .btn-action {
+    padding: .5rem .9rem;
+    font-size: .85rem;
+    min-width: 70px;
+  }
+  .raise-panel { padding: 8px; gap: 6px; }
+  .raise-input { font-size: .85rem; padding: .4rem; }
+  .btn-preset { padding: .25rem .5rem; font-size: .72rem; }
+
+  /* 大厅和等待室 */
+  .lobby-card { width: 94vw; padding: 1.4rem 1rem; }
+  .lobby-title { font-size: 2rem; }
+  .waiting-card { width: 94vw; padding: 1.4rem 1rem; }
+  .modal { min-width: unset; width: 92vw; padding: 1.2rem; }
+}
+
+/* ===== 小屏手机优化（iPhone SE等） ===== */
+@media (max-width: 400px) {
+  .poker-table {
+    width: 95vw;
+    height: 58vw;
+  }
+  .community-area { top: 42%; }
+  .community-cards { gap: 3px; min-height: 48px; }
+  .card { width: 34px; height: 49px; }
+  .card-rank { font-size: .72rem; }
+  .card-suit { font-size: .62rem; }
+  .card-sm { width: 26px; height: 37px; }
+  .card-sm .card-rank { font-size: .58rem; }
+  .card-sm .card-suit { font-size: .5rem; }
+  .seat-box { min-width: 62px; padding: .25rem .3rem; }
+  .seat-name { font-size: .6rem; max-width: 58px; }
+  .pot-amount { font-size: .85rem; }
+  .btn-action { padding: .45rem .75rem; font-size: .8rem; min-width: 65px; }
+}
+
+/* ===== 横屏模式优化 ===== */
+@media (max-width: 900px) and (orientation: landscape) {
+  #game {
+    grid-template-columns: 1fr 280px;
+    grid-template-rows: 1fr;
+    height: 100vh;
+  }
+  .table-area {
+    min-height: 100vh;
+    padding: 5px;
+  }
+  .poker-table {
+    width: 85vw;
+    height: 85vh;
+    max-width: 700px;
+    max-height: 420px;
+  }
+  .sidebar {
+    border-left: 1px solid #c9a84c22;
+    border-top: none;
+    max-height: 100vh;
+  }
+  .community-area { top: 48%; }
+  .action-bar {
+    position: fixed;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #0a0a0fdd;
+    border-radius: 12px;
+    padding: 8px 12px;
+  }
+}
+</style>
+</head>
+<body>
+<!-- LOBBY -->
+<div id="lobby">
+  <div class="lobby-title">&#9824; 德州扑克 &#9824;</div>
+  <div class="lobby-subtitle">Texas Hold'em Online</div>
+  <div class="lobby-card" id="lobbyMain">
+    <h2>欢迎入座</h2>
+    <div class="form-group">
+      <label>你的昵称</label>
+      <input type="text" id="playerName" placeholder="输入昵称" maxlength="12">
+    </div>
+    <div class="divider">选择操作</div>
+    <button class="btn btn-gold" onclick="showCreateRoom()">创建房间</button>
+    <button class="btn btn-outline" style="margin-top:.6rem" onclick="showJoinRoom()">加入房间</button>
+  </div>
+  <div class="lobby-card hidden" id="createRoomPanel" style="margin-top:1rem">
+    <h2>创建房间</h2>
+    <div class="row-2">
+      <div class="form-group">
+        <label>起始筹码</label>
+        <input type="number" id="startChips" value="1000" min="100" step="100">
+      </div>
+      <div class="form-group">
+        <label>小盲注</label>
+        <input type="number" id="smallBlind" value="10" min="1" step="5">
+      </div>
+    </div>
+    <button class="btn btn-gold" onclick="createRoom()">确认创建</button>
+    <button class="btn btn-outline" style="margin-top:.5rem" onclick="hideSubPanels()">返回</button>
+  </div>
+  <div class="lobby-card hidden" id="joinRoomPanel" style="margin-top:1rem">
+    <h2>加入房间</h2>
+    <div class="form-group">
+      <label>房间号（6位）</label>
+      <input type="text" id="joinRoomId" placeholder="输入房间号" maxlength="6" style="letter-spacing:4px;font-size:1.3rem;text-align:center">
+    </div>
+    <button class="btn btn-gold" onclick="joinRoom()">加入房间</button>
+    <button class="btn btn-outline" style="margin-top:.5rem" onclick="hideSubPanels()">返回</button>
+  </div>
+</div>
+
+<!-- WAITING ROOM -->
+<div id="waiting" class="hidden">
+  <div class="waiting-card">
+    <div class="room-id-display">
+      <div class="label">房间号（分享给朋友）</div>
+      <div class="rid" id="waitRoomId">------</div>
+    </div>
+    <div class="player-list">
+      <h3>已加入玩家</h3>
+      <div id="waitPlayerList"></div>
+    </div>
+    <div class="waiting-status" id="waitStatus">等待玩家加入...</div>
+    <button class="btn btn-gold hidden" id="startGameBtn" onclick="startGame()">开始游戏</button>
+    <button class="btn-reset hidden" id="btnResetChipsWaiting" onclick="doResetChips()" style="width:100%;margin-top:.5rem">重设筹码</button>
+    <div class="waiting-status hidden" id="waitingMsg">等待房主开始游戏...</div>
+  </div>
+</div>
+
+<!-- GAME TABLE -->
+<div id="game" class="hidden">
+  <div class="table-area">
+    <div class="conn-status connecting" id="connStatus">连接中...</div>
+    <button class="btn-reset hidden" id="btnSettleGame" onclick="doSettleGame()" style="position:absolute;top:10px;right:10px;z-index:100">游戏结算</button>
+    <div class="poker-table" id="pokerTable">
+      <div class="table-felt">
+        <div class="table-inner-line"></div>
+      </div>
+      <div class="community-area">
+        <div class="community-cards" id="communityCards"></div>
+        <div class="pot-info">
+          <div class="pot-label">底池</div>
+          <div class="pot-amount" id="potAmount">0</div>
+        </div>
+        <div class="round-badge" id="roundBadge">等待开始</div>
+      </div>
+      <div id="seats"></div>
+    </div>
+    <div class="action-bar hidden" id="actionBar">
+      <div class="action-info" id="actionInfo">轮到你行动</div>
+      <div class="action-buttons">
+        <button class="btn-action btn-fold" onclick="doAction('fold')">弃牌</button>
+        <button class="btn-action btn-check" id="btnCheckCall" onclick="doCheckCall()">过牌</button>
+        <button class="btn-action btn-allin" id="btnAllin" onclick="doAllin()" style="display:none">All-In</button>
+        <button class="btn-action btn-raise" id="btnRaise" onclick="openRaisePanel()">加注</button>
+      </div>
+      <div class="raise-panel hidden" id="raisePanel">
+        <div class="raise-presets">
+          <button class="btn-preset" onclick="setRaisePreset('min')">Min</button>
+          <button class="btn-preset" onclick="setRaisePreset('half')">1/2 Pot</button>
+          <button class="btn-preset" onclick="setRaisePreset('pot')">Pot</button>
+          <button class="btn-preset" onclick="setRaisePreset('allin')">All-In</button>
+        </div>
+        <div class="raise-input-row">
+          <input type="range" id="raiseSlider" min="0" max="1000" value="0" oninput="syncRaiseInput(this.value)">
+          <input type="number" id="raiseInput" min="0" value="0" oninput="syncRaiseSliderOnly(this.value)" onblur="validateRaiseInput()">
+          <button class="btn-action btn-raise btn-sm" onclick="doRaise()">确认加注</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <span id="sideRoomId">房间: ------</span>
+      <span style="display:flex;align-items:center;gap:.5rem">
+        <span id="sideHandNo" style="color:#888;font-size:.8rem">第 0 局</span>
+        <button id="btnLeaveRoom" onclick="leaveRoom()" title="退出房间" style="background:#cc4444;border:none;cursor:pointer;font-size:.7rem;padding:.2rem .5rem;border-radius:4px;color:#fff">退出</button>
+        <button id="btnBGM" onclick="toggleBGM()" title="背景音乐开/关" style="background:none;border:none;cursor:pointer;font-size:1rem;padding:0;line-height:1">🎵</button>
+      </span>
+    </div>
+    <div class="log-area" id="logArea"></div>
+    <div class="chat-area">
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input-row">
+        <button class="btn-interact" id="btnFlower" onclick="selectInteraction('flower')" title="送花">🌹</button>
+        <button class="btn-interact" id="btnEgg" onclick="selectInteraction('egg')" title="砸鸡蛋">🥚</button>
+        <input type="text" id="chatInput" placeholder="发送消息..." maxlength="50" onkeydown="if(event.key==='Enter')sendChat()">
+        <button class="btn-chat-send" onclick="sendChat()">发送</button>
+      </div>
+    </div>
+    <!-- 借钱区 -->
+    <div class="loan-area" id="loanArea" style="display:none">
+      <div class="loan-area-title">💰 借贷记录</div>
+      <div id="loanList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- RESULT MODAL -->
+<div class="modal-overlay hidden" id="resultModal">
+  <div class="modal">
+    <div class="modal-title">&#127881; 本局结算</div>
+    <div id="resultContent"></div>
+    <div class="review-section" id="reviewSection" style="display:none">
+      <div class="review-title">&#128270; 牌局复盘</div>
+      <div class="review-title" style="color:#888;font-size:.75rem;margin-bottom:.4rem">公共牌</div>
+      <div class="review-community" id="reviewCommunity"></div>
+      <div id="reviewPlayers"></div>
+    </div>
+    <div class="waiting-next-bar" id="waitingNextBar">等待其他玩家...</div>
+    <button class="btn btn-gold" style="margin-top:.8rem" id="btnReadyNext" onclick="doReadyNext()">继续下一局</button>
+  </div>
+</div>
+
+<!-- 借款请求弹窗（发起方输入金额） -->
+<div class="modal-overlay hidden" id="loanRequestModal">
+  <div class="modal loan-modal">
+    <div class="modal-title">💰 借款</div>
+    <div class="loan-modal-subtitle" id="loanRequestTarget">向 — 借款</div>
+    <div class="loan-input-row">
+      <label>借款金额</label>
+      <input type="number" id="loanAmountInput" min="10" step="10" value="100" oninput="updateLoanPreview()">
+    </div>
+    <div class="loan-hint">须为10的整数倍 · 10% 利息</div>
+    <div class="loan-owed-preview" id="loanOwedPreview">需还：110 筹码</div>
+    <div class="loan-action-row">
+      <button class="btn-loan-confirm" onclick="submitLoanRequest()">发送请求</button>
+      <button class="btn-loan-cancel" onclick="closeLoanRequestModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 借款响应弹窗（出借方同意/拒绝） -->
+<div class="modal-overlay hidden" id="loanResponseModal">
+  <div class="modal loan-modal">
+    <div class="modal-title">💰 借款请求</div>
+    <div class="loan-modal-subtitle" id="loanResponseBody"></div>
+    <div class="loan-owed-preview" id="loanResponseOwed"></div>
+    <div class="loan-action-row">
+      <button class="btn-loan-confirm" onclick="respondLoan(true)">同意借出</button>
+      <button class="btn-loan-deny" onclick="respondLoan(false)">拒绝</button>
+    </div>
+  </div>
+</div>
+
+<!-- 还款弹窗 -->
+<div class="modal-overlay hidden" id="repayModal">
+  <div class="modal loan-modal">
+    <div class="modal-title">💸 还款</div>
+    <div class="loan-modal-subtitle" id="repayTarget"></div>
+    <div class="loan-input-row">
+      <label>还款金额</label>
+      <input type="number" id="repayAmountInput" min="10" step="10" value="10">
+    </div>
+    <div class="loan-hint">须为10的整数倍</div>
+    <div class="loan-action-row">
+      <button class="btn-loan-confirm" onclick="submitRepay()">确认还款</button>
+      <button class="btn-loan-cancel" onclick="closeRepayModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 催收通知弹窗 -->
+<div class="dun-overlay hidden" id="dunModal">
+  <div class="dun-modal">
+    <div class="dun-title" id="dunTitle">⚡ 催收警告</div>
+    <div class="dun-body" id="dunBody"></div>
+    <button class="dun-btn" onclick="closeDunModal()">知道了</button>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+
+<!-- 重连遮罩 -->
+<div class="reconnect-overlay hidden" id="reconnectOverlay">
+  <div class="rc-text">&#128257; 正在重新连接...</div>
+  <div class="rc-sub" id="reconnectSub">请稍候</div>
+</div>
+
+<!-- 结算弹窗 -->
+<div class="settlement-overlay hidden" id="settlementOverlay">
+  <div class="settlement-modal">
+    <div class="settlement-title">🏆 游戏结算</div>
+    <table class="settlement-table" id="settlementTable">
+      <thead>
+        <tr>
+          <th>排名</th>
+          <th>玩家</th>
+          <th>筹码</th>
+          <th>负债</th>
+          <th>净资产</th>
+        </tr>
+      </thead>
+      <tbody id="settlementTableBody">
+      </tbody>
+    </table>
+    <button class="settlement-btn" onclick="closeSettlementModal()">确定</button>
+  </div>
+</div>
+
+<!-- ALL-IN 特效容器 -->
+<div id="allinEffect"></div>
+
+<script>
+// ===== STATE =====
+var ws = null;
+var myId = null;
+var isHost = false;
+var myRoomId = null;
+var myToken = null;
+var gameState = null;
+var myTurn = false;
+var toCallAmount = 0;
+var raiseMin = 0;
+var raiseMax = 0;
+var reconnectTimer = null;
+var reconnectAttempts = 0;
+
+// 互动系统
+var interactionMode = null; // 'flower' 或 'egg'
+var interactionTarget = null;
+
+// ===== SESSION STORAGE =====
+function saveSession(roomId, playerId, token, name) {
+  try {
+    sessionStorage.setItem('dzpk_room', roomId);
+    sessionStorage.setItem('dzpk_pid', String(playerId));
+    sessionStorage.setItem('dzpk_token', token);
+    sessionStorage.setItem('dzpk_name', name || '');
+  } catch(e) {}
+}
+function loadSession() {
+  try {
+    return {
+      roomId: sessionStorage.getItem('dzpk_room'),
+      token: sessionStorage.getItem('dzpk_token'),
+      name: sessionStorage.getItem('dzpk_name') || '',
+    };
+  } catch(e) { return {}; }
+}
+function clearSession() {
+  try { sessionStorage.removeItem('dzpk_room'); sessionStorage.removeItem('dzpk_pid'); sessionStorage.removeItem('dzpk_token'); sessionStorage.removeItem('dzpk_name'); } catch(e) {}
+}
+
+// ===== 持久化设备ID =====
+function getDeviceId() {
+  try {
+    var deviceId = localStorage.getItem('dzpk_device_id');
+    if (!deviceId) {
+      // 生成唯一设备ID
+      deviceId = 'dev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('dzpk_device_id', deviceId);
+    }
+    return deviceId;
+  } catch(e) {
+    // 如果localStorage不可用，使用临时ID
+    return 'temp_' + Math.random().toString(36).substr(2, 9);
+  }
+}
+
+// ===== WEBSOCKET =====
+function connect(onOpen) {
+  var url = "ws://" + window.location.host;
+  ws = new WebSocket(url);
+  ws.onopen = function() {
+    setConnStatus("connected", "已连接");
+    reconnectAttempts = 0;
+    document.getElementById("reconnectOverlay").classList.add("hidden");
+    if (onOpen) onOpen();
+  };
+  ws.onclose = function() {
+    setConnStatus("disconnected", "已断开");
+    // 如果有 session，尝试自动重连
+    var sess = loadSession();
+    if (sess.roomId && sess.token) {
+      scheduleReconnect(sess);
+    } else {
+      showToast("与服务器断开连接", "error");
+    }
+  };
+  ws.onerror = function() {
+    setConnStatus("disconnected", "连接失败");
+  };
+  ws.onmessage = function(e) {
+    try { handleMessage(JSON.parse(e.data)); } catch(err) { console.error(err); }
+  };
+}
+
+function send(obj) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(obj));
+  }
+}
+
+function scheduleReconnect(sess) {
+  if (reconnectAttempts >= 10) {
+    clearSession();
+    showToast("重连失败，请重新加入房间", "error");
+    document.getElementById("reconnectOverlay").classList.add("hidden");
+    return;
+  }
+  reconnectAttempts++;
+  var delay = Math.min(1000 * reconnectAttempts, 5000);
+  document.getElementById("reconnectOverlay").classList.remove("hidden");
+  document.getElementById("reconnectSub").textContent = "第 " + reconnectAttempts + " 次尝试，" + (delay/1000).toFixed(0) + "秒后重连...";
+  setConnStatus("connecting", "重连中...");
+  if (reconnectTimer) clearTimeout(reconnectTimer);
+  reconnectTimer = setTimeout(function() {
+    connect(function() {
+      send({ type: "reconnect", roomId: sess.roomId, token: sess.token });
+    });
+  }, delay);
+}
+
+function setConnStatus(cls, text) {
+  var el = document.getElementById("connStatus");
+  if (!el) return;
+  el.className = "conn-status " + cls;
+  el.textContent = text;
+}
+
+// ===== MESSAGE HANDLER =====
+function handleMessage(msg) {
+  switch(msg.type) {
+    case "joined":
+      myId = msg.playerId;
+      isHost = msg.isHost;
+      myRoomId = msg.roomId;
+      myToken = msg.token;
+      if (msg.bgmUrl) {
+        bgmUrl = msg.bgmUrl;
+        console.log('收到背景音乐配置:', bgmUrl);
+      }
+      var myName = "";
+      try { myName = sessionStorage.getItem('dzpk_name') || ""; } catch(e) {}
+      saveSession(msg.roomId, msg.playerId, msg.token, myName);
+      if (msg.reconnected) {
+        showToast("重连成功！", "");
+        document.getElementById("reconnectOverlay").classList.add("hidden");
+      }
+      // 不在这里切换界面，等 state 消息到来后统一处理
+      break;
+    case "state":
+      gameState = msg.state;
+      // 如果不是我的回合，隐藏操作栏
+      if (msg.state.turn !== myId) {
+        document.getElementById("actionBar").classList.add("hidden");
+        document.getElementById("raisePanel").classList.add("hidden");
+      }
+      if (msg.state.roomState === "waiting") {
+        showWaiting();
+        renderWaitingPlayers(msg.state.players);
+      } else {
+        showGame();
+        renderGame(msg.state);
+      }
+      break;
+    case "your_turn":
+      toCallAmount = msg.toCall;
+      activateActionBar(msg.toCall, msg.myChips, msg.mustAllin);
+      break;
+    case "hand_result":
+      showResult(msg.winners, msg.review);
+      break;
+    case "waiting_next":
+      updateWaitingNext(msg.notReady);
+      break;
+    case "log":
+      addLog(msg.text, msg.cls);
+      break;
+    case "chat":
+      addChat(msg.name, msg.text);
+      break;
+    case "kicked":
+      clearSession();
+      stopBGM();
+      showToast("你已被房主踢出房间", "error");
+      document.getElementById("lobby").classList.remove("hidden");
+      document.getElementById("waiting").classList.add("hidden");
+      document.getElementById("game").classList.add("hidden");
+      document.getElementById("resultModal").classList.add("hidden");
+      myId = null; myRoomId = null; myToken = null; isHost = false; gameState = null;
+      break;
+    case "loan_request":
+      // 有人向我借钱，弹出响应弹窗
+      openLoanResponseModal(msg);
+      break;
+    case "loan_response":
+      // 我发出的借款请求有了回复
+      closeLoanRequestModal();
+      if (msg.accepted) {
+        showToast(msg.lenderName + " 同意借给你 " + msg.amount + " 筹码（需还 " + msg.owed + "）");
+      } else {
+        showToast(msg.lenderName + " 拒绝了你的借款请求" + (msg.msg ? "：" + msg.msg : ""), "error");
+      }
+      break;
+    case "loan_dun":
+      // 被催收通知
+      showDunModal(msg);
+      break;
+    case "settlement":
+      // 游戏结算结果
+      showSettlementModal(msg.rankings);
+      break;
+    case "allin":
+      // All-In 特效通知
+      triggerAllinEffect(msg.playerName);
+      break;
+    case "interact":
+      // 互动特效通知
+      playInteractionEffect(msg.fromId, msg.toId, msg.interactType);
+      var fromName = msg.fromName || '玩家';
+      var toName = msg.toName || '玩家';
+      if (msg.interactType === 'flower') {
+        showToast(fromName + ' 送了一束花给 ' + toName, '');
+      } else if (msg.interactType === 'egg') {
+        showToast(fromName + ' 砸了 ' + toName + ' 一个鸡蛋！', '');
+      }
+      break;
+    case "error":
+      showToast(msg.msg, "error");
+      // 如果是操作错误，恢复玩家的回合状态
+      if (gameState && gameState.turn === myId) {
+        myTurn = true;
+        document.getElementById("actionBar").classList.remove("hidden");
+      }
+      // 重连失败时清除 session，回到大厅
+      if (document.getElementById("reconnectOverlay") && !document.getElementById("reconnectOverlay").classList.contains("hidden")) {
+        clearSession();
+        document.getElementById("reconnectOverlay").classList.add("hidden");
+      }
+      break;
+  }
+}
+
+// ===== LOBBY =====
+function showCreateRoom() {
+  document.getElementById("lobbyMain").classList.add("hidden");
+  document.getElementById("createRoomPanel").classList.remove("hidden");
+  document.getElementById("joinRoomPanel").classList.add("hidden");
+}
+function showJoinRoom() {
+  document.getElementById("lobbyMain").classList.add("hidden");
+  document.getElementById("joinRoomPanel").classList.remove("hidden");
+  document.getElementById("createRoomPanel").classList.add("hidden");
+}
+function hideSubPanels() {
+  document.getElementById("lobbyMain").classList.remove("hidden");
+  document.getElementById("createRoomPanel").classList.add("hidden");
+  document.getElementById("joinRoomPanel").classList.add("hidden");
+}
+
+function createRoom() {
+  var name = document.getElementById("playerName").value.trim();
+  if (!name) { showToast("请输入昵称", "error"); return; }
+  var chips = parseInt(document.getElementById("startChips").value) || 1000;
+  var sb = parseInt(document.getElementById("smallBlind").value) || 10;
+  try { sessionStorage.setItem('dzpk_name', name); } catch(e) {}
+  primeAudio();
+  var deviceId = getDeviceId();
+  connect(function() {
+    send({ type: "create_room", name: name, chips: chips, sb: sb, deviceId: deviceId });
+  });
+}
+
+function joinRoom() {
+  var name = document.getElementById("playerName").value.trim();
+  if (!name) { showToast("请输入昵称", "error"); return; }
+  var roomId = document.getElementById("joinRoomId").value.trim().toUpperCase();
+  if (roomId.length !== 6) { showToast("请输入6位房间号", "error"); return; }
+  try { sessionStorage.setItem('dzpk_name', name); } catch(e) {}
+  primeAudio();
+  var deviceId = getDeviceId();
+  connect(function() {
+    send({ type: "join_room", roomId: roomId, name: name, deviceId: deviceId });
+  });
+}
+
+function doSettleGame() {
+  if (!isHost) return;
+  if (!confirm("确定要进行游戏结算吗？结算结果将保存到 res.log 文件中。")) return;
+  send({ type: "settle_game" });
+}
+
+function leaveRoom() {
+  if (!confirm("确定要退出房间吗？")) return;
+
+  // 发送退出消息到服务器
+  send({ type: "leave_room" });
+
+  // 清空 localStorage
+  clearSession();
+
+  // 关闭 WebSocket 连接
+  if (ws) {
+    ws.close();
+    ws = null;
+  }
+
+  // 停止背景音乐
+  stopBGM();
+
+  // 重置所有状态
+  myId = null;
+  myRoomId = null;
+  myToken = null;
+  isHost = false;
+  gameState = null;
+  myTurn = false;
+
+  // 显示提示
+  showToast("已退出房间", "");
+
+  // 返回大厅
+  document.getElementById("lobby").classList.remove("hidden");
+  document.getElementById("waiting").classList.add("hidden");
+  document.getElementById("game").classList.add("hidden");
+  document.getElementById("resultModal").classList.add("hidden");
+}
+
+// ===== WAITING ROOM =====
+function showWaiting() {
+  document.getElementById("lobby").classList.add("hidden");
+  document.getElementById("waiting").classList.remove("hidden");
+  document.getElementById("game").classList.add("hidden");
+  document.getElementById("waitRoomId").textContent = myRoomId || "------";
+  document.getElementById("sideRoomId").textContent = "房间: " + (myRoomId || "------");
+  stopBGM(); // 回到等待室停止背景音乐
+  updateWaitButtons();
+}
+
+function updateWaitButtons() {
+  var startBtn = document.getElementById("startGameBtn");
+  var waitMsg = document.getElementById("waitingMsg");
+  var resetWaitBtn = document.getElementById("btnResetChipsWaiting");
+  if (isHost) {
+    startBtn.classList.remove("hidden");
+    waitMsg.classList.add("hidden");
+  } else {
+    startBtn.classList.add("hidden");
+    waitMsg.classList.remove("hidden");
+  }
+  // 重设筹码按钮：房主在等待室始终可见
+  if (resetWaitBtn) {
+    if (isHost) {
+      resetWaitBtn.classList.remove("hidden");
+    } else {
+      resetWaitBtn.classList.add("hidden");
+    }
+  }
+}
+
+function renderWaitingPlayers(players) {
+  var list = document.getElementById("waitPlayerList");
+  list.innerHTML = "";
+  players.forEach(function(p, i) {
+    if (p.kicked) return; // 被踢玩家不显示
+    var div = document.createElement("div");
+    div.className = "player-item";
+    var leftHtml = "<span class=\"pname\">" + escHtml(p.name) +
+      (i === 0 ? "<span class=\"host-badge\">房主</span>" : "") + "</span>";
+    var rightHtml = "<span class=\"pchips\">筹码: " + p.chips;
+    if (isHost && i !== 0) {
+      rightHtml += " <span style=\"color:#cc4444;font-size:.7rem;cursor:pointer;margin-left:6px\" onclick=\"kickPlayer(" + p.id + ",'" + escHtml(p.name) + "')\">[踢]</span>";
+    }
+    rightHtml += "</span>";
+    div.innerHTML = leftHtml + rightHtml;
+    list.appendChild(div);
+  });
+  // 只计算未被踢出的玩家
+  var activePlayers = players.filter(function(p) { return !p.kicked; });
+  var status = document.getElementById("waitStatus");
+  status.textContent = activePlayers.length + " 人已加入" + (activePlayers.length < 2 ? "（至少需要2人）" : "（可以开始）");
+  var startBtn = document.getElementById("startGameBtn");
+  if (isHost) {
+    startBtn.disabled = activePlayers.length < 2;
+    startBtn.style.opacity = activePlayers.length < 2 ? "0.5" : "1";
+  }
+  updateWaitButtons();
+}
+
+function startGame() {
+  send({ type: "start_game" });
+}
+
+function kickPlayer(pid, pname) {
+  if (!isHost) return;
+  if (confirm("确定踢出 " + pname + " 吗？")) {
+    send({ type: "kick_player", targetId: pid });
+  }
+}
+
+// ===== GAME =====
+function showGame() {
+  document.getElementById("lobby").classList.add("hidden");
+  document.getElementById("waiting").classList.add("hidden");
+  document.getElementById("game").classList.remove("hidden");
+  // 延迟启动背景音乐，确保游戏界面先渲染完成
+  setTimeout(function() {
+    if (bgmEnabled) startBGM();
+  }, 800);
+}
+
+// Seat positions around the oval (% of table width/height)
+// Index 0 = self (bottom center), rest arranged clockwise
+var SEAT_POSITIONS = [
+  { x: 50, y: 91 },
+  { x: 17, y: 76 },
+  { x: 5,  y: 50 },
+  { x: 17, y: 24 },
+  { x: 50, y: 9  },
+  { x: 83, y: 24 },
+  { x: 95, y: 50 },
+  { x: 83, y: 76 },
+  { x: 65, y: 91 },
+];
+
+function renderGame(state) {
+  gameState = state;
+  isHost = state.isHost;
+  document.getElementById("sideHandNo").textContent = "第 " + state.handNo + " 局";
+
+  // Community cards
+  renderCommunityCards(state.community);
+
+  // Pot
+  document.getElementById("potAmount").textContent = state.pot;
+
+  // Round badge
+  var roundNames = { preflop: "翻牌前", flop: "翻牌", turn: "转牌", river: "河牌", showdown: "摊牌" };
+  document.getElementById("roundBadge").textContent = roundNames[state.round] || state.round;
+
+  // Render seats
+  renderSeats(state);
+
+  // 游戏结算按钮：房主在游戏中始终可见
+  var settleBtn = document.getElementById("btnSettleGame");
+  if (state.isHost) {
+    settleBtn.classList.remove("hidden");
+  } else {
+    settleBtn.classList.add("hidden");
+  }
+
+  // Hide action bar (will be shown by your_turn message)
+  if (state.turn !== state.viewerId) {
+    document.getElementById("actionBar").classList.add("hidden");
+    myTurn = false;
+  }
+
+  // 借贷记录
+  renderLoanArea(state);
+}
+
+function renderCommunityCards(community) {
+  var el = document.getElementById("communityCards");
+  el.innerHTML = "";
+  if (!community || community.length === 0) return;
+  community.forEach(function(card) {
+    el.appendChild(makeCardEl(card, false));
+  });
+}
+
+function renderSeats(state) {
+  var seatsEl = document.getElementById("seats");
+  seatsEl.innerHTML = "";
+  var players = state.players;
+  var n = players.length;
+  if (n === 0) return;
+
+  // Find self index
+  var selfIdx = -1;
+  for (var i = 0; i < players.length; i++) {
+    if (players[i].id === state.viewerId) { selfIdx = i; break; }
+  }
+  if (selfIdx === -1) selfIdx = 0;
+
+  // Reorder so self is at position 0
+  var ordered = [];
+  for (var j = 0; j < n; j++) {
+    ordered.push(players[(selfIdx + j) % n]);
+  }
+
+  ordered.forEach(function(player, posIdx) {
+    var pos = SEAT_POSITIONS[posIdx] || SEAT_POSITIONS[0];
+    var seat = document.createElement("div");
+    seat.className = "seat";
+    seat.style.left = pos.x + "%";
+    seat.style.top = pos.y + "%";
+
+    var isActive = (player.id === state.turn);
+    var isSelf = (player.id === state.viewerId);
+    var isDealer = (player.id === state.dealer);
+    var isFolded = player.folded;
+    var isAllIn = player.allIn;
+    var isKicked = player.kicked;
+
+    // 被踢玩家不显示座位
+    if (isKicked) return;
+
+    // Seat box
+    var box = document.createElement("div");
+    box.className = "seat-box" + (isActive ? " active" : "") + (isFolded ? " folded" : "") + (isSelf ? " self" : "");
+    box.setAttribute("data-player-id", player.id);
+
+    // Name row
+    var nameRow = document.createElement("div");
+    nameRow.className = "seat-name";
+    var nameSpan = document.createElement("span");
+    nameSpan.style.flex = "1";
+    var nameText = escHtml(player.name);
+    if (isAllIn) nameText += " <span style=\"color:#ff8844;font-size:.7rem\">[全押]</span>";
+    if (!player.connected) nameText += " <span style=\"color:#666;font-size:.7rem\">[离线]</span>";
+    if (player.waitingNextHand) nameText += " <span style=\"color:#66ccff;font-size:.7rem\">[等待下局]</span>";
+    nameSpan.innerHTML = nameText;
+    nameRow.appendChild(nameSpan);
+
+    // 折叠按钮
+    var collapseBtn = document.createElement("span");
+    collapseBtn.className = "seat-collapse-btn";
+    collapseBtn.innerHTML = "▼";
+    collapseBtn.setAttribute("data-player-id", player.id);
+    collapseBtn.onclick = function(e) {
+      e.stopPropagation();
+      var btn = e.target;
+      var seatBox = btn.closest(".seat-box");
+      if (seatBox.classList.contains("collapsed")) {
+        seatBox.classList.remove("collapsed");
+        btn.innerHTML = "▼";
+      } else {
+        seatBox.classList.add("collapsed");
+        btn.innerHTML = "▶";
+      }
+    };
+    nameRow.appendChild(collapseBtn);
+    box.appendChild(nameRow);
+
+    // 可折叠内容容器
+    var collapsibleContent = document.createElement("div");
+    collapsibleContent.className = "seat-collapsible";
+
+    // 操作按钮行（踢人、借钱）
+    if ((state.isHost && !isSelf) || (!isSelf && state.roomState === "playing")) {
+      var actionsRow = document.createElement("div");
+      actionsRow.style.cssText = "display:flex;gap:4px;margin-top:2px;justify-content:center;";
+
+      // 房主踢人按钮（不能踢自己）
+      if (state.isHost && !isSelf) {
+        var kickBtn = document.createElement("button");
+        kickBtn.style.cssText = "background:#cc4444;color:#fff;border:none;border-radius:3px;padding:2px 6px;font-size:.6rem;cursor:pointer;";
+        kickBtn.textContent = "踢出";
+        kickBtn.onclick = (function(pid, pname) { return function(e) {
+          e.stopPropagation();
+          if (confirm("确定踢出 " + pname + " 吗？")) {
+            send({ type: "kick_player", targetId: pid });
+          }
+        }; })(player.id, player.name);
+        actionsRow.appendChild(kickBtn);
+      }
+
+      // 借钱按钮（非自己、游戏进行中）
+      if (!isSelf && state.roomState === "playing") {
+        var borrowBtn = document.createElement("button");
+        borrowBtn.style.cssText = "background:#6699ff;color:#fff;border:none;border-radius:3px;padding:2px 6px;font-size:.6rem;cursor:pointer;";
+        borrowBtn.textContent = "借钱";
+        borrowBtn.onclick = (function(pid, pname, maxChips) { return function(e) {
+          e.stopPropagation();
+          openLoanRequestModal(pid, pname, maxChips);
+        }; })(player.id, player.name, player.chips);
+        actionsRow.appendChild(borrowBtn);
+      }
+
+      collapsibleContent.appendChild(actionsRow);
+    }
+
+    // Chips row
+    var chipsRow = document.createElement("div");
+    chipsRow.className = "seat-chips";
+    chipsRow.textContent = player.chips + " 筹码";
+    collapsibleContent.appendChild(chipsRow);
+
+    // Bet row
+    if (state.roundBets && state.roundBets[player.id] > 0) {
+      var betRow = document.createElement("div");
+      betRow.className = "seat-bet";
+      betRow.textContent = "下注: " + state.roundBets[player.id];
+      collapsibleContent.appendChild(betRow);
+    }
+
+    // Cards
+    if (player.cards && player.cards.length > 0) {
+      var cardsRow = document.createElement("div");
+      cardsRow.className = "seat-cards";
+      player.cards.forEach(function(card) {
+        if (card === "back") {
+          var backEl = document.createElement("div");
+          backEl.className = "card card-sm back";
+          cardsRow.appendChild(backEl);
+        } else {
+          cardsRow.appendChild(makeCardEl(card, true));
+        }
+      });
+      collapsibleContent.appendChild(cardsRow);
+    }
+
+    box.appendChild(collapsibleContent);
+
+    seat.appendChild(box);
+
+    // Dealer button
+    if (isDealer) {
+      var dealerBtn = document.createElement("div");
+      dealerBtn.className = "dealer-btn";
+      dealerBtn.textContent = "D";
+      seat.appendChild(dealerBtn);
+    }
+
+    seatsEl.appendChild(seat);
+  });
+}
+
+// ===== CARD RENDERING =====
+var SUIT_SYMBOLS = { spade: "&#9824;", heart: "&#9829;", diamond: "&#9830;", club: "&#9827;" };
+var RED_SUITS = { heart: true, diamond: true };
+
+function makeCardEl(card, small) {
+  var el = document.createElement("div");
+  el.className = "card" + (small ? " card-sm" : "") + (RED_SUITS[card.suit] ? " red" : " black");
+  var rankEl = document.createElement("div");
+  rankEl.className = "card-rank";
+  rankEl.textContent = card.rank;
+  var suitEl = document.createElement("div");
+  suitEl.className = "card-suit";
+  suitEl.innerHTML = SUIT_SYMBOLS[card.suit] || card.suit;
+  el.appendChild(rankEl);
+  el.appendChild(suitEl);
+  el.classList.add("card-deal");
+  return el;
+}
+
+// ===== ACTION BAR =====
+function activateActionBar(toCall, myChips, mustAllin) {
+  myTurn = true;
+  toCallAmount = toCall;
+  playTurnSound(); // 可爱提示音
+  var bar = document.getElementById("actionBar");
+  bar.classList.remove("hidden");
+  var checkCallBtn = document.getElementById("btnCheckCall");
+  var raiseBtn = document.getElementById("btnRaise");
+  var allinBtn = document.getElementById("btnAllin");
+  var info = document.getElementById("actionInfo");
+
+  // 取当前玩家筹码（优先用消息里的，其次从 gameState 里取）
+  var chips = myChips;
+  if (chips === undefined && gameState) {
+    for (var i = 0; i < gameState.players.length; i++) {
+      if (gameState.players[i].id === myId) { chips = gameState.players[i].chips; break; }
+    }
+  }
+  chips = chips || 0;
+
+  if (toCall <= 0) {
+    // 无需跟注：过牌 or 下注
+    checkCallBtn.textContent = "过牌";
+    checkCallBtn.className = "btn-action btn-check";
+    checkCallBtn.style.display = "";
+    allinBtn.style.display = "none";
+    info.textContent = "轮到你行动";
+  } else if (mustAllin || toCall >= chips) {
+    // 跟注金额超过筹码，只能 all-in 或弃牌
+    checkCallBtn.style.display = "none";
+    allinBtn.style.display = "";
+    allinBtn.textContent = "All-In 跟注 " + chips;
+    info.textContent = "需要跟注 " + toCall + "，筹码不足，可 All-In (" + chips + ") 或弃牌";
+  } else {
+    checkCallBtn.textContent = "跟注 " + toCall;
+    checkCallBtn.className = "btn-action btn-call";
+    checkCallBtn.style.display = "";
+    allinBtn.style.display = "none";
+    info.textContent = "需要跟注: " + toCall + " 筹码";
+  }
+
+  // 加注滑块
+  if (gameState && chips > 0) {
+    var myRoundBet = gameState.roundBets ? (gameState.roundBets[myId] || 0) : 0;
+    var curBet = gameState.currentBet || 0;
+    var minR = gameState.minRaise || gameState.bb || 1;
+    raiseMin = curBet + minR;          // 最小加注到的总额
+    raiseMax = chips + myRoundBet;      // all-in 时的总额上限
+    if (raiseMin > raiseMax) raiseMin = raiseMax;  // 筹码不够加到最小，只能 all-in
+    var canRaise = raiseMax > curBet;
+    if (raiseBtn) raiseBtn.style.opacity = canRaise ? "" : "0.4";
+    if (raiseBtn) raiseBtn.disabled = !canRaise;
+    var slider = document.getElementById("raiseSlider");
+    var input = document.getElementById("raiseInput");
+    slider.min = raiseMin; slider.max = raiseMax; slider.value = raiseMin;
+    input.min = raiseMin;  input.max = raiseMax;  input.value = raiseMin;
+  }
+}
+
+function doCheckCall() {
+  if (toCallAmount > 0) {
+    doAction("call");
+  } else {
+    doAction("check");
+  }
+}
+
+function doAllin() {
+  if (!myTurn) return;
+  // all-in：发送 raise 到 raiseMax（自己所有筹码+已投入）
+  send({ type: "action", action: "raise", amount: raiseMax });
+  myTurn = false;
+  // 不立即隐藏操作栏，等待服务器响应
+}
+
+function doAction(action) {
+  if (!myTurn) return;
+  send({ type: "action", action: action, amount: 0 });
+  myTurn = false;
+  // 不立即隐藏操作栏，等待服务器响应
+}
+
+function openRaisePanel() {
+  var panel = document.getElementById("raisePanel");
+  panel.classList.toggle("hidden");
+}
+
+function syncRaiseInput(val) {
+  document.getElementById("raiseInput").value = val;
+}
+
+function syncRaiseSliderOnly(val) {
+  // 只同步到滑块，不修正输入框的值，允许用户自由输入
+  var slider = document.getElementById("raiseSlider");
+  var v = parseInt(val);
+  if (!isNaN(v)) {
+    // 只在有效数字时同步滑块
+    if (v >= raiseMin && v <= raiseMax) {
+      slider.value = v;
+    }
+  }
+}
+
+function validateRaiseInput() {
+  // 失去焦点时校验并修正输入值
+  var input = document.getElementById("raiseInput");
+  var slider = document.getElementById("raiseSlider");
+  var v = parseInt(input.value);
+
+  if (isNaN(v) || v < raiseMin) {
+    v = raiseMin;
+  } else if (v > raiseMax) {
+    v = raiseMax;
+  }
+
+  input.value = v;
+  slider.value = v;
+}
+
+function syncRaiseSlider(val) {
+  var slider = document.getElementById("raiseSlider");
+  var v = parseInt(val) || raiseMin;
+  if (v < raiseMin) v = raiseMin;
+  if (v > raiseMax) v = raiseMax;
+  slider.value = v;
+  document.getElementById("raiseInput").value = v;
+}
+
+function setRaisePreset(preset) {
+  var val = raiseMin;
+  if (gameState) {
+    var pot = gameState.pot || 0;
+    if (preset === "min") val = raiseMin;
+    else if (preset === "half") val = Math.floor(pot / 2) + (gameState.currentBet || 0);
+    else if (preset === "pot") val = pot + (gameState.currentBet || 0);
+    else if (preset === "allin") val = raiseMax;
+  }
+  if (val < raiseMin) val = raiseMin;
+  if (val > raiseMax) val = raiseMax;
+  document.getElementById("raiseSlider").value = val;
+  document.getElementById("raiseInput").value = val;
+}
+
+function doRaise() {
+  if (!myTurn) return;
+  var input = document.getElementById("raiseInput");
+  var amount = parseInt(input.value);
+
+  // 校验输入值
+  if (isNaN(amount) || amount < raiseMin) {
+    showToast("加注金额不能低于最小加注 " + raiseMin, "error");
+    input.value = raiseMin;
+    document.getElementById("raiseSlider").value = raiseMin;
+    return;
+  }
+  if (amount > raiseMax) {
+    showToast("加注金额超过筹码上限 " + raiseMax, "error");
+    input.value = raiseMax;
+    document.getElementById("raiseSlider").value = raiseMax;
+    return;
+  }
+
+  send({ type: "action", action: "raise", amount: amount });
+  myTurn = false;
+  // 不立即隐藏操作栏，等待服务器响应
+  document.getElementById("raisePanel").classList.add("hidden");
+}
+
+// ===== RESULT MODAL =====
+var lastReview = null;
+
+function showResult(winners, review) {
+  lastReview = review || null;
+  var modal = document.getElementById("resultModal");
+  var content = document.getElementById("resultContent");
+  content.innerHTML = "";
+  if (!winners || winners.length === 0) {
+    content.innerHTML = "<p style=\"color:#888;text-align:center\">无结算信息</p>";
+  } else {
+    winners.forEach(function(w) {
+      var div = document.createElement("div");
+      div.className = "winner-item";
+      div.innerHTML =
+        "<span class=\"winner-name\">" + escHtml(w.name) + "</span>" +
+        "<span class=\"winner-hand\">" + escHtml(w.handName || "") + "</span>" +
+        "<span class=\"winner-gain\">+" + w.gain + "</span>";
+      content.appendChild(div);
+    });
+  }
+
+  // 复盘区域
+  var reviewSection = document.getElementById("reviewSection");
+  var reviewCommunity = document.getElementById("reviewCommunity");
+  var reviewPlayers = document.getElementById("reviewPlayers");
+  reviewCommunity.innerHTML = "";
+  reviewPlayers.innerHTML = "";
+
+  if (review && review.community && review.community.length > 0) {
+    reviewSection.style.display = "";
+    // 公牌
+    review.community.forEach(function(card) {
+      reviewCommunity.appendChild(makeCardEl(card, false));
+    });
+    // 参赛玩家手牌
+    if (review.players && review.players.length > 1) {
+      review.players.forEach(function(rp) {
+        var pdiv = document.createElement("div");
+        pdiv.className = "review-player";
+        var nameDiv = document.createElement("div");
+        nameDiv.className = "review-player-name";
+        // 找到该玩家的牌型
+        var handName = "";
+        if (winners) {
+          var winfo = winners.find(function(w) { return w.id === rp.id; });
+          if (winfo && winfo.handName) handName = " — " + winfo.handName;
+        }
+        nameDiv.textContent = rp.name + handName;
+        pdiv.appendChild(nameDiv);
+        var cardsDiv = document.createElement("div");
+        cardsDiv.className = "review-cards";
+        if (rp.cards && rp.cards.length > 0) {
+          rp.cards.forEach(function(card) {
+            cardsDiv.appendChild(makeCardEl(card, true));
+          });
+        }
+        pdiv.appendChild(cardsDiv);
+        reviewPlayers.appendChild(pdiv);
+      });
+    }
+
+    // 写入日志复盘
+    addLogReview(review, winners);
+  } else {
+    reviewSection.style.display = "none";
+  }
+
+  // 重置等待状态
+  document.getElementById("waitingNextBar").textContent = "点击继续后等待其他玩家...";
+  document.getElementById("btnReadyNext").disabled = false;
+  document.getElementById("btnReadyNext").style.opacity = "";
+  modal.classList.remove("hidden");
+}
+
+function addLogReview(review, winners) {
+  var area = document.getElementById("logArea");
+  // 分隔线
+  var sep = document.createElement("div");
+  sep.className = "log-entry";
+  sep.style.cssText = "color:#c9a84c44;border-top:1px solid #c9a84c22;margin:4px 0;padding-top:4px;font-size:.72rem";
+  sep.textContent = "── 复盘 ──";
+  area.appendChild(sep);
+
+  // 公牌
+  var commDiv = document.createElement("div");
+  commDiv.className = "log-entry";
+  commDiv.style.cssText = "color:#aaa;font-size:.75rem";
+  commDiv.textContent = "公牌: " + review.community.map(cardStr).join(" ");
+  area.appendChild(commDiv);
+
+  // 各玩家手牌
+  if (review.players) {
+    review.players.forEach(function(rp) {
+      var handName = "";
+      if (winners) {
+        var winfo = winners.find(function(w) { return w.id === rp.id; });
+        if (winfo && winfo.handName) handName = " [" + winfo.handName + "]";
+      }
+      var pDiv = document.createElement("div");
+      pDiv.className = "log-entry";
+      pDiv.style.cssText = "color:#88aacc;font-size:.75rem";
+      pDiv.textContent = rp.name + ": " + (rp.cards || []).map(cardStr).join(" ") + handName;
+      area.appendChild(pDiv);
+    });
+  }
+  area.scrollTop = area.scrollHeight;
+  while (area.children.length > 200) area.removeChild(area.firstChild);
+}
+
+function cardStr(card) {
+  var suits = { spade: "♠", heart: "♥", diamond: "♦", club: "♣" };
+  return card.rank + (suits[card.suit] || card.suit);
+}
+
+function doReadyNext() {
+  send({ type: "ready_next" });
+  document.getElementById("btnReadyNext").disabled = true;
+  document.getElementById("btnReadyNext").style.opacity = "0.5";
+  document.getElementById("waitingNextBar").textContent = "已确认，等待其他玩家...";
+}
+
+function updateWaitingNext(notReady) {
+  var bar = document.getElementById("waitingNextBar");
+  if (!bar) return;
+  if (!notReady || notReady.length === 0) {
+    bar.textContent = "所有人已准备，开始下一局...";
+    setTimeout(function() {
+      document.getElementById("resultModal").classList.add("hidden");
+    }, 800);
+  } else {
+    bar.textContent = "等待: " + notReady.map(function(p) { return p.name; }).join("、");
+  }
+}
+
+// ===== LOG =====
+function addLog(text, cls) {
+  var area = document.getElementById("logArea");
+  var div = document.createElement("div");
+  div.className = "log-entry" + (cls ? " log-" + cls : "");
+  div.textContent = text;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+  // Keep max 100 entries
+  while (area.children.length > 100) area.removeChild(area.firstChild);
+}
+
+// ===== CHAT =====
+function addChat(name, text) {
+  var area = document.getElementById("chatMessages");
+  var div = document.createElement("div");
+  div.className = "chat-msg";
+  div.innerHTML = "<span class=\"chat-name\">" + escHtml(name) + ":</span> " + escHtml(text);
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+  while (area.children.length > 50) area.removeChild(area.firstChild);
+}
+
+function sendChat() {
+  var input = document.getElementById("chatInput");
+  var text = input.value.trim();
+  if (!text) return;
+  send({ type: "chat", text: text });
+  input.value = "";
+}
+
+// ===== 互动系统 =====
+function selectInteraction(type) {
+  if (interactionMode === type) {
+    // 取消选择
+    interactionMode = null;
+    document.getElementById('btnFlower').classList.remove('active');
+    document.getElementById('btnEgg').classList.remove('active');
+    clearInteractionTargets();
+  } else {
+    // 选择互动类型
+    interactionMode = type;
+    document.getElementById('btnFlower').classList.remove('active');
+    document.getElementById('btnEgg').classList.remove('active');
+    if (type === 'flower') {
+      document.getElementById('btnFlower').classList.add('active');
+      showToast('请点击要送花的玩家', '');
+    } else if (type === 'egg') {
+      document.getElementById('btnEgg').classList.add('active');
+      showToast('请点击要砸鸡蛋的玩家', '');
+    }
+    highlightInteractionTargets();
+  }
+}
+
+function highlightInteractionTargets() {
+  var seats = document.querySelectorAll('.seat-box');
+  seats.forEach(function(seat) {
+    var playerId = seat.getAttribute('data-player-id');
+    if (playerId && playerId !== String(myId)) {
+      seat.classList.add('interact-target');
+      seat.onclick = function() { sendInteraction(parseInt(playerId)); };
+    }
+  });
+}
+
+function clearInteractionTargets() {
+  var seats = document.querySelectorAll('.seat-box');
+  seats.forEach(function(seat) {
+    seat.classList.remove('interact-target');
+    seat.onclick = null;
+  });
+}
+
+function sendInteraction(targetId) {
+  if (!interactionMode) return;
+  send({ type: 'interact', interactType: interactionMode, targetId: targetId });
+  // 取消选择模式
+  document.getElementById('btnFlower').classList.remove('active');
+  document.getElementById('btnEgg').classList.remove('active');
+  interactionMode = null;
+  clearInteractionTargets();
+}
+
+function playInteractionEffect(fromId, toId, type) {
+  var fromSeat = document.querySelector('.seat-box[data-player-id="' + fromId + '"]');
+  var toSeat = document.querySelector('.seat-box[data-player-id="' + toId + '"]');
+  if (!fromSeat || !toSeat) return;
+
+  var fromRect = fromSeat.getBoundingClientRect();
+  var toRect = toSeat.getBoundingClientRect();
+  var fromX = fromRect.left + fromRect.width / 2;
+  var fromY = fromRect.top + fromRect.height / 2;
+  var toX = toRect.left + toRect.width / 2;
+  var toY = toRect.top + toRect.height / 2;
+
+  if (type === 'flower') {
+    playFlowerEffect(fromX, fromY, toX, toY);
+  } else if (type === 'egg') {
+    playEggEffect(fromX, fromY, toX, toY);
+  }
+}
+
+function playFlowerEffect(fromX, fromY, toX, toY) {
+  var flower = document.createElement('div');
+  flower.className = 'flower-fly';
+  flower.textContent = '💐';
+  flower.style.left = fromX + 'px';
+  flower.style.top = fromY + 'px';
+  document.body.appendChild(flower);
+
+  // 飞行动画
+  var duration = 800;
+  var startTime = Date.now();
+
+  function animate() {
+    var elapsed = Date.now() - startTime;
+    var progress = Math.min(elapsed / duration, 1);
+    var easeProgress = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+
+    var currentX = fromX + (toX - fromX) * easeProgress;
+    var currentY = fromY + (toY - fromY) * easeProgress - Math.sin(progress * Math.PI) * 50; // 抛物线
+    var rotation = progress * 360;
+
+    flower.style.left = currentX + 'px';
+    flower.style.top = currentY + 'px';
+    flower.style.transform = 'rotate(' + rotation + 'deg) scale(' + (1 + progress * 0.3) + ')';
+
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      // 到达目标，爆开成花瓣
+      flower.remove();
+      createFlowerBurst(toX, toY);
+    }
+  }
+
+  animate();
+}
+
+function createFlowerBurst(x, y) {
+  var burst = document.createElement('div');
+  burst.className = 'flower-burst';
+  burst.style.left = x + 'px';
+  burst.style.top = y + 'px';
+  document.body.appendChild(burst);
+
+  var flowers = ['🌸', '🌺', '🌼', '🌻', '🌷', '💮'];
+  for (var i = 0; i < 8; i++) {
+    var particle = document.createElement('div');
+    particle.className = 'flower-particle';
+    particle.textContent = flowers[Math.floor(Math.random() * flowers.length)];
+    var angle = (i / 8) * Math.PI * 2;
+    var distance = 60 + Math.random() * 40;
+    particle.style.setProperty('--tx', Math.cos(angle) * distance + 'px');
+    particle.style.setProperty('--ty', Math.sin(angle) * distance + 'px');
+    burst.appendChild(particle);
+  }
+
+  setTimeout(function() { burst.remove(); }, 1000);
+}
+
+function playEggEffect(fromX, fromY, toX, toY) {
+  var egg = document.createElement('div');
+  egg.className = 'egg-fly';
+  egg.textContent = '🥚';
+  egg.style.left = fromX + 'px';
+  egg.style.top = fromY + 'px';
+  document.body.appendChild(egg);
+
+  // 飞行动画
+  var duration = 600;
+  var startTime = Date.now();
+
+  function animate() {
+    var elapsed = Date.now() - startTime;
+    var progress = Math.min(elapsed / duration, 1);
+    var easeProgress = progress * progress; // ease-in
+
+    var currentX = fromX + (toX - fromX) * easeProgress;
+    var currentY = fromY + (toY - fromY) * easeProgress + Math.sin(progress * Math.PI) * 30; // 抛物线
+    var rotation = progress * 720; // 快速旋转
+
+    egg.style.left = currentX + 'px';
+    egg.style.top = currentY + 'px';
+    egg.style.transform = 'rotate(' + rotation + 'deg)';
+
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      // 到达目标，砸裂
+      egg.remove();
+      createEggSplash(toX, toY);
+    }
+  }
+
+  animate();
+}
+
+function createEggSplash(x, y) {
+  var splash = document.createElement('div');
+  splash.className = 'egg-splash';
+  splash.textContent = '💥';
+  splash.style.left = x + 'px';
+  splash.style.top = y + 'px';
+  splash.style.transform = 'translate(-50%, -50%)';
+  document.body.appendChild(splash);
+
+  setTimeout(function() { splash.remove(); }, 600);
+}
+
+// ===== TOAST =====
+var toastTimer = null;
+function showToast(msg, type) {
+  var el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = "toast" + (type === "error" ? " error" : "");
+  el.classList.remove("hidden");
+  el.style.opacity = "1";
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() {
+    el.style.opacity = "0";
+    setTimeout(function() { el.classList.add("hidden"); }, 300);
+  }, 3000);
+}
+
+// ===== UTILS =====
+function escHtml(s) {
+  if (!s) return "";
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+// ===== 借钱系统 =====
+var loanRequestTargetId = null;   // 当前借款弹窗的出借方 ID
+var loanResponseReqKey = null;    // 当前响应弹窗的 reqKey
+var repayLenderId = null;         // 当前还款弹窗的出借方 ID
+
+// 渲染侧边栏借贷记录区
+function renderLoanArea(state) {
+  var area = document.getElementById("loanArea");
+  var list = document.getElementById("loanList");
+  if (!state.loans || state.loans.length === 0) {
+    area.style.display = "none";
+    return;
+  }
+  area.style.display = "";
+  list.innerHTML = "";
+  state.loans.forEach(function(loan) {
+    var remaining = loan.owed - loan.repaid;
+    if (remaining <= 0) return;
+    var item = document.createElement("div");
+    item.className = "loan-item";
+    var isBorrower = (loan.borrowerId === state.viewerId);
+    var iLend = (loan.lenderId === state.viewerId);
+    // 找出对方名字
+    var counterpart = "";
+    if (state.players) {
+      var pid = isBorrower ? loan.lenderId : loan.borrowerId;
+      var cp = state.players.find(function(p) { return p.id === pid; });
+      if (cp) counterpart = cp.name;
+    }
+    var roleText = isBorrower
+      ? ("欠 " + escHtml(counterpart))
+      : (escHtml(counterpart) + " 欠我");
+    var infoEl = document.createElement("span");
+    infoEl.className = "loan-info";
+    infoEl.textContent = roleText;
+    var owedEl = document.createElement("span");
+    owedEl.className = "loan-owed";
+    owedEl.textContent = remaining + " 筹码";
+    item.appendChild(infoEl);
+    item.appendChild(owedEl);
+    // 还款按钮（借款人可见）
+    if (isBorrower) {
+      var repayBtn = document.createElement("button");
+      repayBtn.className = "loan-btn repay";
+      repayBtn.textContent = "还款";
+      repayBtn.onclick = (function(lid, rem) { return function() {
+        openRepayModal(lid, counterpart, rem);
+      }; })(loan.lenderId, remaining);
+      item.appendChild(repayBtn);
+    }
+    // 催收按钮（出借人可见）
+    if (iLend) {
+      var dunBtn = document.createElement("button");
+      dunBtn.className = "loan-btn dun";
+      dunBtn.textContent = "催收";
+      dunBtn.onclick = (function(bid) { return function() {
+        send({ type: "loan_dun", borrowerId: bid });
+      }; })(loan.borrowerId);
+      item.appendChild(dunBtn);
+    }
+    list.appendChild(item);
+  });
+  // 如果所有借款都已还清，隐藏区域
+  if (list.children.length === 0) area.style.display = "none";
+}
+
+// 打开借款请求弹窗
+function openLoanRequestModal(lenderId, lenderName, lenderChips) {
+  loanRequestTargetId = lenderId;
+  document.getElementById("loanRequestTarget").textContent = "向 " + lenderName + " 借款（对方筹码: " + lenderChips + "）";
+  var input = document.getElementById("loanAmountInput");
+  input.max = Math.floor(lenderChips / 10) * 10;
+  input.value = Math.min(100, Math.floor(lenderChips / 10) * 10);
+  updateLoanPreview();
+  document.getElementById("loanRequestModal").classList.remove("hidden");
+}
+
+function updateLoanPreview() {
+  var val = parseInt(document.getElementById("loanAmountInput").value) || 0;
+  var owed = Math.round(val * 1.1);
+  document.getElementById("loanOwedPreview").textContent = "需还：" + owed + " 筹码（含10%利息）";
+}
+
+function closeLoanRequestModal() {
+  document.getElementById("loanRequestModal").classList.add("hidden");
+  loanRequestTargetId = null;
+}
+
+function submitLoanRequest() {
+  if (loanRequestTargetId === null) return;
+  var amount = parseInt(document.getElementById("loanAmountInput").value) || 0;
+  if (amount <= 0 || amount % 10 !== 0) {
+    showToast("借款金额必须是10的整数倍", "error"); return;
+  }
+  send({ type: "loan_request", lenderId: loanRequestTargetId, amount: amount });
+  closeLoanRequestModal();
+  showToast("借款请求已发送，等待对方回复...");
+}
+
+// 打开借款响应弹窗（收到别人的借款请求）
+function openLoanResponseModal(msg) {
+  loanResponseReqKey = msg.reqKey;
+  document.getElementById("loanResponseBody").textContent =
+    msg.borrowerName + " 向你借 " + msg.amount + " 筹码";
+  document.getElementById("loanResponseOwed").textContent =
+    "对方需还你 " + msg.owed + " 筹码（含10%利息）";
+  document.getElementById("loanResponseModal").classList.remove("hidden");
+}
+
+function respondLoan(accept) {
+  if (!loanResponseReqKey) return;
+  send({ type: "loan_respond", reqKey: loanResponseReqKey, accept: accept });
+  document.getElementById("loanResponseModal").classList.add("hidden");
+  loanResponseReqKey = null;
+}
+
+// 打开还款弹窗
+function openRepayModal(lenderId, lenderName, remaining) {
+  repayLenderId = lenderId;
+  document.getElementById("repayTarget").textContent = "还给 " + lenderName + "（还欠 " + remaining + " 筹码）";
+  var input = document.getElementById("repayAmountInput");
+  input.max = remaining;
+  input.value = Math.min(remaining, 10);
+  document.getElementById("repayModal").classList.remove("hidden");
+}
+
+function closeRepayModal() {
+  document.getElementById("repayModal").classList.add("hidden");
+  repayLenderId = null;
+}
+
+function submitRepay() {
+  if (repayLenderId === null) return;
+  var amount = parseInt(document.getElementById("repayAmountInput").value) || 0;
+  if (amount <= 0 || amount % 10 !== 0) {
+    showToast("还款金额必须是10的整数倍", "error"); return;
+  }
+  send({ type: "loan_repay", lenderId: repayLenderId, amount: amount });
+  closeRepayModal();
+}
+
+// 显示催收通知弹窗
+function showDunModal(msg) {
+  var title = document.getElementById("dunTitle");
+  var body = document.getElementById("dunBody");
+  if (msg.forced) {
+    title.textContent = "⚡ 强制催收！";
+    body.innerHTML = "<b>" + escHtml(msg.lenderName) + "</b> 对你发出第 <b>" + msg.dunCount + "</b> 次催收！<br>" +
+      "已达3次，将自动扣除你当前筹码的一半！<br>" +
+      "当前欠款：<b>" + msg.remaining + "</b> 筹码";
+  } else {
+    title.textContent = "⚠️ 催收警告";
+    body.innerHTML = "<b>" + escHtml(msg.lenderName) + "</b> 向你发出第 <b>" + msg.dunCount + "</b> 次催收<br>" +
+      "（达到3次将强制扣款）<br>" +
+      "当前欠款：<b>" + msg.remaining + "</b> 筹码";
+  }
+  document.getElementById("dunModal").classList.remove("hidden");
+}
+
+function closeDunModal() {
+  document.getElementById("dunModal").classList.add("hidden");
+}
+
+// ===== 结算弹窗 =====
+function showSettlementModal(rankings) {
+  var tbody = document.getElementById("settlementTableBody");
+  tbody.innerHTML = "";
+
+  rankings.forEach(function(r, idx) {
+    var tr = document.createElement("tr");
+
+    var tdRank = document.createElement("td");
+    tdRank.textContent = (idx + 1);
+    tr.appendChild(tdRank);
+
+    var tdName = document.createElement("td");
+    tdName.textContent = r.name;
+    tr.appendChild(tdName);
+
+    var tdChips = document.createElement("td");
+    tdChips.textContent = r.chips;
+    tr.appendChild(tdChips);
+
+    var tdDebt = document.createElement("td");
+    tdDebt.textContent = r.debt;
+    tdDebt.style.color = r.debt > 0 ? "#ff9944" : "#88cc88";
+    tr.appendChild(tdDebt);
+
+    var tdNet = document.createElement("td");
+    tdNet.textContent = r.netAssets;
+    tdNet.style.fontWeight = "bold";
+    tr.appendChild(tdNet);
+
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById("settlementOverlay").classList.remove("hidden");
+}
+
+function closeSettlementModal() {
+  document.getElementById("settlementOverlay").classList.add("hidden");
+}
+
+// ===== AUDIO =====
+var audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  }
+  return audioCtx;
+}
+
+// 可爱提示音：三个上升音符（叮咚叮）
+function playTurnSound() {
+  var ctx = getAudioCtx();
+  if (!ctx) return;
+  // 恢复被浏览器挂起的 AudioContext
+  if (ctx.state === 'suspended') ctx.resume();
+  var notes = [523.25, 659.25, 783.99]; // C5 E5 G5
+  notes.forEach(function(freq, i) {
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    var t = ctx.currentTime + i * 0.13;
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.35, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+    osc.start(t);
+    osc.stop(t + 0.25);
+  });
+}
+
+var bgmEnabled = true;
+var bgmPlaying = false;
+var bgmAudio = null;
+var bgmUrl = '';
+
+// All-In 音效（使用 Web Audio API 生成）
+var allinAudioContext = null;
+var allinSoundBuffer = null;
+
+// 初始化 All-In 音效
+function initAllinSound() {
+  try {
+    allinAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+    // 生成一个震撼的音效：低频冲击 + 高频闪电
+    var sampleRate = allinAudioContext.sampleRate;
+    var duration = 1.5;
+    var buffer = allinAudioContext.createBuffer(2, sampleRate * duration, sampleRate);
+
+    for (var channel = 0; channel < 2; channel++) {
+      var data = buffer.getChannelData(channel);
+      for (var i = 0; i < buffer.length; i++) {
+        var t = i / sampleRate;
+        // 低频冲击波
+        var bass = Math.sin(2 * Math.PI * 80 * t) * Math.exp(-t * 3);
+        // 高频闪电音
+        var treble = Math.sin(2 * Math.PI * 1200 * t) * Math.exp(-t * 8) * 0.3;
+        // 噪音爆破
+        var noise = (Math.random() * 2 - 1) * Math.exp(-t * 10) * 0.2;
+        data[i] = (bass + treble + noise) * 0.5;
+      }
+    }
+    allinSoundBuffer = buffer;
+  } catch (e) {
+    console.error('All-In 音效初始化失败:', e);
+  }
+}
+
+// 播放 All-In 音效
+function playAllinSound() {
+  if (!allinAudioContext || !allinSoundBuffer) {
+    initAllinSound();
+  }
+  if (allinAudioContext && allinSoundBuffer) {
+    try {
+      var source = allinAudioContext.createBufferSource();
+      source.buffer = allinSoundBuffer;
+      source.connect(allinAudioContext.destination);
+      source.start(0);
+    } catch (e) {
+      console.error('All-In 音效播放失败:', e);
+    }
+  }
+}
+
+// 触发 All-In 特效
+function triggerAllinEffect(playerName) {
+  var container = document.getElementById('allinEffect');
+  if (!container) return;
+
+  // 清空之前的特效
+  container.innerHTML = '';
+
+  // 创建闪电闪光
+  var lightning = document.createElement('div');
+  lightning.className = 'lightning-flash';
+  container.appendChild(lightning);
+
+  // 创建利刃轨迹
+  var trail = document.createElement('div');
+  trail.className = 'blade-trail';
+  container.appendChild(trail);
+
+  // 创建利刃
+  var blade = document.createElement('div');
+  blade.className = 'blade-slash';
+  container.appendChild(blade);
+
+  // 创建 ALL IN 文字
+  var text = document.createElement('div');
+  text.className = 'allin-text';
+  text.textContent = 'ALL IN!';
+  container.appendChild(text);
+
+  // 播放音效
+  playAllinSound();
+
+  // 显示提示
+  setTimeout(function() {
+    showToast(playerName + ' ALL IN！', 'allin');
+  }, 500);
+
+  // 1.5秒后清理特效元素
+  setTimeout(function() {
+    container.innerHTML = '';
+  }, 1500);
+}
+
+// 创建并配置背景音乐 Audio 对象
+function createBGMAudio() {
+  if (!bgmUrl || bgmAudio) return;
+
+  bgmAudio = new Audio();
+  bgmAudio.loop = true;
+  bgmAudio.volume = 0.3;
+  bgmAudio.preload = 'auto'; // 预加载音频
+
+  // 监听加载错误
+  bgmAudio.addEventListener('error', function(e) {
+    console.error('背景音乐加载失败:', e);
+    console.log('错误详情:', {
+      error: bgmAudio.error,
+      networkState: bgmAudio.networkState,
+      readyState: bgmAudio.readyState
+    });
+    bgmEnabled = false;
+    bgmPlaying = false;
+    updateBGMBtn(false);
+    showToast('背景音乐加载失败，已自动禁用', 'error');
+  });
+
+  // 监听加载成功
+  bgmAudio.addEventListener('canplaythrough', function() {
+    console.log('背景音乐加载成功，可以播放');
+  });
+
+  // 监听加载开始
+  bgmAudio.addEventListener('loadstart', function() {
+    console.log('开始加载背景音乐:', bgmUrl);
+  });
+
+  // 设置音频源
+  bgmAudio.src = bgmUrl;
+
+  console.log('背景音乐已配置:', bgmUrl);
+}
+
+function startBGM() {
+  if (!bgmEnabled || bgmPlaying || !bgmUrl) return;
+
+  // 如果还没创建 Audio 对象，先创建
+  if (!bgmAudio) {
+    createBGMAudio();
+  }
+
+  // 尝试播放
+  if (bgmAudio) {
+    var playPromise = bgmAudio.play();
+    if (playPromise !== undefined) {
+      playPromise.then(function() {
+        bgmPlaying = true;
+        updateBGMBtn(true);
+        console.log('背景音乐开始播放');
+      }).catch(function(err) {
+        console.warn('自动播放被阻止，等待用户交互:', err.message);
+        // 浏览器阻止自动播放，等待用户点击后再播放
+      });
+    }
+  }
+}
+
+function stopBGM() {
+  if (bgmAudio) {
+    bgmAudio.pause();
+    bgmAudio.currentTime = 0;
+  }
+  bgmPlaying = false;
+  updateBGMBtn(false);
+}
+
+function toggleBGM() {
+  if (bgmPlaying) {
+    stopBGM();
+    bgmEnabled = false;
+  } else {
+    bgmEnabled = true;
+    startBGM();
+  }
+}
+
+function updateBGMBtn(playing) {
+  var btn = document.getElementById('btnBGM');
+  if (btn) btn.textContent = playing ? '🎵' : '🔇';
+}
+
+function primeAudio() {
+  var ctx = getAudioCtx();
+  if (ctx && ctx.state === 'suspended') ctx.resume();
+}
+
+// ===== KEYBOARD SHORTCUTS =====
+document.addEventListener("keydown", function(e) {
+  if (!myTurn) return;
+  if (e.key === "f" || e.key === "F") doAction("fold");
+  if (e.key === "c" || e.key === "C") doCheckCall();
+  if (e.key === "r" || e.key === "R") openRaisePanel();
+});
+
+// ===== INIT =====
+document.addEventListener("DOMContentLoaded", function() {
+  var nameInput = document.getElementById("playerName");
+  if (nameInput) {
+    nameInput.addEventListener("keydown", function(e) {
+      if (e.key === "Enter") showCreateRoom();
+    });
+  }
+  var joinInput = document.getElementById("joinRoomId");
+  if (joinInput) {
+    joinInput.addEventListener("keydown", function(e) {
+      if (e.key === "Enter") joinRoom();
+    });
+    // Auto-uppercase room ID
+    joinInput.addEventListener("input", function() {
+      this.value = this.value.toUpperCase();
+    });
+  }
+
+  // 检查是否有 session 可以重连
+  var sess = loadSession();
+  if (sess.roomId && sess.token) {
+    // 显示重连遮罩，尝试重连
+    document.getElementById("reconnectOverlay").classList.remove("hidden");
+    document.getElementById("reconnectSub").textContent = "正在恢复上次的游戏...";
+    connect(function() {
+      send({ type: "reconnect", roomId: sess.roomId, token: sess.token });
+    });
+  }
+});
+</script>
+</body>
+</html>
+
